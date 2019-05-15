@@ -11,15 +11,24 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Google.Protobuf" Version="3.7.0" />
         <PackageReference Include="Microsoft.AspNetCore.App" />
+        <PackageReference Include="NetMQ" Version="4.0.0.1" />
         <PackageReference Include="Npgsql">
           <Version>4.0.6</Version>
         </PackageReference>
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="2.1.0" />
+        <PackageReference Include="ZeroMQ" Version="4.1.0.31" />
+        <PackageReference Include="ZooKeeperNetEx" Version="3.4.12.1" />
     </ItemGroup>
 
     <ItemGroup>
       <Compile Remove="Controllers\File.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="QQ20190515-4.jpg" />
+      <None Remove="Models\zk.proto" />
     </ItemGroup>
 
 </Project>

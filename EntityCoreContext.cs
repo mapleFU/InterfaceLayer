@@ -1,14 +1,17 @@
+using System;
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using OSApiInterface.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using org.apache.zookeeper;
 
 namespace OSApiInterface
 {
     public class EntityCoreContext: DbContext
     {
         IConfiguration Configuration { get; }
-
+                 
         public EntityCoreContext(IConfiguration configuration)
         {
             Configuration = configuration;

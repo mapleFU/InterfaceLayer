@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using org.apache.zookeeper;
 
 namespace OSApiInterface
 {
@@ -37,6 +38,12 @@ namespace OSApiInterface
             services.AddEntityFrameworkNpgsql()
                 .AddDbContext<EntityCoreContext>()
                 .BuildServiceProvider();
+            
+//        private ZooKeeper zk = new ZooKeeper("localhost:2181", 1500, null, true);
+
+            services.AddSingleton<ZooKeeper>(
+                new ZooKeeper("localhost:2181", 1500, null, true)
+            );
         }
 
         /// <summary>
