@@ -5,11 +5,21 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Folder Include="Migrations" />
+        <Folder Include="Services" />
         <Folder Include="wwwroot\" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.App" />
+        <PackageReference Include="Npgsql">
+          <Version>4.0.6</Version>
+        </PackageReference>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="2.1.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Controllers\File.cs" />
     </ItemGroup>
 
 </Project>

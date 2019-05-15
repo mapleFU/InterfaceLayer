@@ -13,6 +13,10 @@ using Microsoft.Extensions.Options;
 
 namespace OSApiInterface
 {
+    /// <summary>
+    /// The entry point of the Application
+    /// Which will do DI in this class.
+    /// </summary>
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -22,15 +26,27 @@ namespace OSApiInterface
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+        /// <summary>
+        /// This method gets called by the runtime. Use this method to add services to the container.
+        /// Like adding db context for using EF, Using Mvc.
+        /// Mostly Add.
+        /// </summary>
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddEntityFrameworkNpgsql()
+                .AddDbContext<EntityCoreContext>()
+                .BuildServiceProvider();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        /// <summary>
+        /// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        /// Config the routes and some other things.
+        /// Use will add Middleware to the pipeline. (Mostly Use)
+        /// </summary>
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+           
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -39,9 +55,10 @@ namespace OSApiInterface
             {
                 app.UseHsts();
             }
-
-            app.UseHttpsRedirection();
+            
+//            app.UseHttpsRedirection();
             app.UseMvc();
+           
         }
     }
 }
