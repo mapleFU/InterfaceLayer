@@ -8,13 +8,15 @@ namespace OSApiInterface.Models
     {
         // 全局的 uuid
         [Key]
-        public Int64 Global { get; set; }
+        public string Global { get; set; }
         
         // MIME Type
         public string Mime { get; set; }
         
         // Size of the file
         public Int64 Size { get; set; }
+        
+        public string Checksum { get; set; }
         
         // ACL List of the file
         public string Acl { get; set; }
@@ -23,6 +25,6 @@ namespace OSApiInterface.Models
         public Int64 Version { get; set; }
         
         // Date to update the version
-        public DateTimeKind Date { get; set; }
+        public DateTime Date { get; set; }
     }
 }

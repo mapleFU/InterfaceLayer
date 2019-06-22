@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetMQ.Sockets;
 using org.apache.zookeeper;
+using OSApiInterface.Services;
 
 namespace OSApiInterface
 {
@@ -55,6 +56,11 @@ namespace OSApiInterface
             var pullSocket = new PullSocket();
             pullSocket.Bind("tcp://*:5558");
             services.AddSingleton<PullSocket>(pullSocket);
+
+            // add interface for service
+            // notice that something should be Scoped
+            services.AddScoped<IZookeeperService, ZookeeperService>();
+            services.AddScoped<IFileMetaService, FileMetaService>();
         }
 
         /// <summary>

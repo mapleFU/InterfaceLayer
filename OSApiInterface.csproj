@@ -6,13 +6,13 @@
 
     <ItemGroup>
         <Folder Include="Migrations" />
-        <Folder Include="Services" />
         <Folder Include="wwwroot\" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Google.Protobuf" Version="3.7.0" />
         <PackageReference Include="Microsoft.AspNetCore.App" />
+        <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.1.0" />
         <PackageReference Include="NetMQ" Version="4.0.0.1" />
         <PackageReference Include="Npgsql">
           <Version>4.0.6</Version>

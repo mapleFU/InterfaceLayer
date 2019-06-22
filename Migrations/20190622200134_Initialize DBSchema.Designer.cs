@@ -10,8 +10,8 @@ using OSApiInterface;
 namespace OSApiInterface.Migrations
 {
     [DbContext(typeof(EntityCoreContext))]
-    [Migration("20190515161402_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20190622200134_Initialize DBSchema")]
+    partial class InitializeDBSchema
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -52,6 +52,31 @@ namespace OSApiInterface.Migrations
                     b.HasData(
                         new { Id = -1, Global = 0L, IsDirectory = false, Name = "/", Share = true, Type = "folder" }
                     );
+                });
+
+            modelBuilder.Entity("OSApiInterface.Models.FileMeta", b =>
+                {
+                    b.Property<string>("Global")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("Acl");
+
+                    b.Property<string>("Checksum");
+
+                    b.Property<DateTime>("Date");
+
+                    b.Property<string>("Mime");
+
+                    b.Property<long>("Size");
+
+                    b.Property<long>("Version");
+
+                    b.HasKey("Global");
+
+                    b.HasIndex("Checksum")
+                        .HasName("idx_checksum");
+
+                    b.ToTable("FileMetas");
                 });
 
             modelBuilder.Entity("OSApiInterface.Models.FileEntity", b =>

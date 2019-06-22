@@ -18,6 +18,7 @@ namespace OSApiInterface
         }
         
         public virtual DbSet<FileEntity> FileEntities { get; set; }
+        public virtual DbSet<FileMeta> FileMetas { get; set; }
 //        public virtual DbSet<FileDirectory> FileDirectories { get; set; }
         
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -59,6 +60,16 @@ namespace OSApiInterface
                 }
             );
 
+            modelBuilder.Entity<FileMeta>()
+                .Property(f => f.Global)
+                .ValueGeneratedOnAdd();
+            
+            modelBuilder.Entity<FileMeta>().ToTable("file_metas")
+                .HasKey(fe => fe.Global)
+                .HasName("pk_fm_global");
+            
+            modelBuilder.Entity<FileMeta>().HasIndex(e => e.Checksum).HasName("idx_checksum");
+            
         }
     }
 }
