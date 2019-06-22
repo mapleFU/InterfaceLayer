@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NetMQ.Sockets;
 using org.apache.zookeeper;
 
 namespace OSApiInterface
@@ -42,8 +43,18 @@ namespace OSApiInterface
 //        private ZooKeeper zk = new ZooKeeper("localhost:2181", 1500, null, true);
 
             services.AddSingleton<ZooKeeper>(
-                new ZooKeeper("localhost:2181", 1500, null, true)
+                new ZooKeeper("maplewish.cn:2181", 1500, null, true)
             );
+            // TODO add http client
+            services.AddHttpClient();
+            
+            var pubSocket = new PublisherSocket();
+            pubSocket.Bind("tcp://*:11234");
+            services.AddSingleton<PublisherSocket>(pubSocket);
+
+            var pullSocket = new PullSocket();
+            pullSocket.Bind("tcp://*:5558");
+            services.AddSingleton<PullSocket>(pullSocket);
         }
 
         /// <summary>
@@ -58,11 +69,6 @@ namespace OSApiInterface
             {
                 app.UseDeveloperExceptionPage();
             }
-            else
-            {
-                app.UseHsts();
-            }
-            
 //            app.UseHttpsRedirection();
             app.UseMvc();
            

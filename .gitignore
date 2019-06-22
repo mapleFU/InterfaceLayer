@@ -544,3 +544,5 @@ fabric.properties
 **___jb_tmp___
 
 # End of https://www.gitignore.io/api/rider,csharp,aspnetcore
+
+*.log
