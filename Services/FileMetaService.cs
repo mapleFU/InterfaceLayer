@@ -30,7 +30,13 @@ namespace OSApiInterface.Services
         {
             return await _context.FileMetas.AnyAsync(o => o.Global == objectId);
         }
-        
+
+        public async Task<bool> ExistsDataWithHash(string shaHash)
+        {
+            return await _context.FileMetas.AnyAsync(o => o.Checksum == shaHash);
+        }
+
+
         public async Task<FileMeta> CreateFileMeta(string objectId, Int64 size, 
             string checksum, string fileContentType)
         {

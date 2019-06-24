@@ -7,5 +7,6 @@ namespace OSApiInterface.Services
     {
         Task<ChildrenResult> GetChildrenAsync();
         Task<Server> RandomChooseChildrenAsync();
+        Task<Server> LoadServerByNameAsync(string chooseChild);
     }
 }

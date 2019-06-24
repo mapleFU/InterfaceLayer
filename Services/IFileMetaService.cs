@@ -26,5 +26,12 @@ namespace OSApiInterface.Services
         /// <param name="objectId">The uid of the object in a bucket</param>
         /// <returns>If the data exists</returns>
         Task<bool> ExistsDataWithId(string objectId);
+
+        /// <summary>
+        /// Return if the storage system exists the hashCode
+        /// </summary>
+        /// <param name="shaHash"></param>
+        /// <returns></returns>
+        Task<bool> ExistsDataWithHash(string shaHash);
     }
 }

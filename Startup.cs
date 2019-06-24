@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NetMQ;
 using NetMQ.Sockets;
 using org.apache.zookeeper;
 using OSApiInterface.Services;
@@ -43,15 +44,18 @@ namespace OSApiInterface
             
 //        private ZooKeeper zk = new ZooKeeper("localhost:2181", 1500, null, true);
 
+
             services.AddSingleton<ZooKeeper>(
                 new ZooKeeper("maplewish.cn:2181", 1500, null, true)
             );
             // TODO add http client
             services.AddHttpClient();
             
+            // TODO : make clear this: http://zguide.zeromq.org/py%3aall#Getting-the-Message-Out
             var pubSocket = new PublisherSocket();
             pubSocket.Bind("tcp://*:11234");
             services.AddSingleton<PublisherSocket>(pubSocket);
+            pubSocket.SendFrame("Hello");
 
             var pullSocket = new PullSocket();
             pullSocket.Bind("tcp://*:5558");
