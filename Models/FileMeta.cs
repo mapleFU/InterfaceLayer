@@ -18,8 +18,8 @@ namespace OSApiInterface.Models
         
         public string Checksum { get; set; }
         
-        // ACL List of the file
-        public string Acl { get; set; }
+//        // ACL List of the file
+//        public string Acl { get; set; }
         
         // Version of the FileMeta, default(not use) is zero 
         public Int64 Version { get; set; }

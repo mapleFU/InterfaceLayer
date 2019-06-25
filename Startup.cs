@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -14,6 +15,7 @@ using NetMQ;
 using NetMQ.Sockets;
 using org.apache.zookeeper;
 using OSApiInterface.Services;
+using StackExchange.Redis;
 
 namespace OSApiInterface
 {
@@ -65,6 +67,27 @@ namespace OSApiInterface
             // notice that something should be Scoped
             services.AddScoped<IZookeeperService, ZookeeperService>();
             services.AddScoped<IFileMetaService, FileMetaService>();
+            services.AddScoped<IUserService, UserService>();
+            
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowMyOrigin",
+                    builder => builder.WithOrigins("http://localhost:8080"));
+            });
+            // Redis Service
+            var conn = ConnectionMultiplexer.Connect("maplewish.cn:6700");
+            services.AddSingleton<ConnectionMultiplexer>(conn);
+            
+            
+            // https://stackoverflow.com/questions/52896068/reactasp-net-core-no-access-control-allow-origin-header-is-present-on-the-r
+            services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
+            {
+                builder.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials();
+            }));
+
         }
 
         /// <summary>
@@ -80,8 +103,13 @@ namespace OSApiInterface
                 app.UseDeveloperExceptionPage();
             }
 //            app.UseHttpsRedirection();
+            app.UseCors("MyPolicy");
+            
             app.UseMvc();
-           
+            
+//            app.UseCors("AllowMyOrigin");
+            
+
         }
     }
 }

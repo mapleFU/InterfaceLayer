@@ -5,16 +5,25 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OSApiInterface.Models
 {
+    /// <summary>
+    /// Deprecated!!!!!
+    /// </summary>
     public class FileEntity
     {
-        // Id of the File
+        /// <summary>Id of the File</summary> 
         [Key]
         public int Id { get; set; }
         
-        public Int64 Global { get; set; }
+        /// <summary>
+        /// Global String
+        /// </summary>
+        public string Global { get; set; }
         
         // name of the file
         public string Name { get; set; }
+        
+        // Path of the file, the file will be indentify by name and 
+        public string Path { get; set; }
         
         // Type of the file, which can be 
         // folder or simple file 

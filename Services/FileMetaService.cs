@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Extensions.Internal;
 using OSApiInterface.Models;
 
 namespace OSApiInterface.Services
@@ -47,7 +50,7 @@ namespace OSApiInterface.Services
             currentMeta.Mime = fileContentType;
             currentMeta.Checksum = checksum;
             // TODO: set these
-            currentMeta.Acl = "allow-all";
+//            currentMeta.Acl = "allow-all";
             currentMeta.Version = 0;
             
             
@@ -55,6 +58,11 @@ namespace OSApiInterface.Services
             await _context.SaveChangesAsync();
             return currentMeta;
 
+        }
+
+        public async Task<IEnumerable<FileMeta>> LoadFileMetaAsync(int page, int pageSize = 10)
+        {
+            return await _context.FileMetas.OrderBy(t => t.Date).Skip(page * pageSize).ToListAsync();
         }
     }
 }

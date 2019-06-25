@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using OSApiInterface.Controllers.ReqBody;
@@ -30,9 +32,11 @@ namespace OSApiInterface.Controllers
         private PullSocket _pullSocket;
         private IFileMetaService _fileMetaService;
         private IZookeeperService _zkService;
+        private EntityCoreContext _context;
         
         public FileController(ZooKeeper zk, ILogger<FileController> logger, IHttpClientFactory httpClientFactory, 
-            PublisherSocket publisherSocket, PullSocket pullSocket, IFileMetaService fileMetaService, IZookeeperService zkService)
+            PublisherSocket publisherSocket, PullSocket pullSocket, IFileMetaService fileMetaService, IZookeeperService zkService,
+            EntityCoreContext context)
         {
             _zkService = zkService;
             _logger = logger;
@@ -40,6 +44,7 @@ namespace OSApiInterface.Controllers
             _publisherSocket = publisherSocket;
             _pullSocket = pullSocket;
             _fileMetaService = fileMetaService;
+            _context = context;
         }
 
         
@@ -98,6 +103,109 @@ namespace OSApiInterface.Controllers
             return null;
         }
 
+        [Route("object/list")]
+        [HttpGet]
+        public async Task<IEnumerable<FileMeta>> GetFileList([FromQuery] int? pn, [FromQuery] int? pageSize)
+        {
+            if (pn == null)
+            {
+                pn = 0;
+            }
+
+            if (pageSize == null)
+            {
+                pageSize = 10;
+            }
+
+            return await _fileMetaService.LoadFileMetaAsync(pn.Value, pageSize.Value);
+        }
+
+        [Route("object/noform/{objectId}")]
+        [HttpPut]
+        public async Task<IActionResult> PutFileWithoutForm([FromRoute] string objectId)
+        { 
+            using (var txn = await _context.Database.BeginTransactionAsync())
+            {
+
+                if (await _fileMetaService.ExistsDataWithId(objectId))
+                {
+                    // TODO: considering to create a new version here.
+                    return BadRequest(new
+                    {
+                        error = "exists object id,"
+                    });
+                }
+                
+                var infileStream = Request.Body;
+               
+    
+                // Get Digest in Header
+                string digest;
+                StringValues stringValue;
+                if (HttpContext.Request.Headers.TryGetValue("Digest", out stringValue))
+                {
+                    digest = stringValue.ToString();
+                }
+                else
+                {
+                    return BadRequest("Must have Digest Header");
+                }
+    
+                bool ifUpload = await _fileMetaService.ExistsDataWithHash(digest);
+                
+                // TODO: make clear how to fill content size
+                Int64 length = (Int64) 0;
+                string fileContentType = Request.ContentType;
+                await _fileMetaService.CreateFileMeta(objectId, length, digest, fileContentType);
+                Server server = await _zkService.RandomChooseChildrenAsync();
+    
+                // The hash code not exists and need to be upload
+                if (!ifUpload)
+                {
+                    var url = new System.UriBuilder("http", server.Host, System.Convert.ToUInt16(server.HttpPort), "/temp/" + digest);
+    
+                    var httpClient = _httpClientFactory.CreateClient();
+                    var stringPayload = await Task.Run(() => JsonConvert.SerializeObject(
+                    new {
+                        size = length,
+                    }));
+                    var httpContent = new StringContent(stringPayload, Encoding.UTF8, "application/json");
+                    // Post first
+                    var resp = await httpClient.PostAsync(url.ToString(), httpContent);
+                    if (!resp.IsSuccessStatusCode)
+                    {
+                        txn.Rollback();
+                        return BadRequest(resp.StatusCode.ToString());
+    
+                    }
+                    string uid = await resp.Content.ReadAsStringAsync();
+                    _logger.LogInformation("Receive uuid {}", uid);
+                    
+                    var uid_url = new System.UriBuilder("http", server.Host, System.Convert.ToUInt16(server.HttpPort), "/temp/" + uid);
+                    // Patch after post with uuid
+                    resp = await httpClient.PatchAsync(uid_url.ToString(), new StreamContent(infileStream));
+                    if (!resp.IsSuccessStatusCode)
+                    {
+                        txn.Rollback();
+                        return BadRequest(await resp.Content.ReadAsStringAsync());
+    //                    throw new HttpRequestException(await resp.Content.ReadAsStringAsync());
+                    }
+                    // Finally Put
+                    await httpClient.PutAsync(uid_url.ToString(), new StringContent(""));
+                    
+                    _logger.LogInformation("Upload to storage layer done.");
+                    
+                }
+                else
+                {
+                    _logger.LogInformation("Didn't upload to storage layer.");
+                }
+                txn.Commit();
+    
+                return Ok();
+            }
+        }
+
         /// <summary>
         /// Upload File with correspond file and get result
         /// TODO: encapsulate the total procedure as a transaction, and cache the hashcode of the file to avoid duplicate upload
@@ -109,89 +217,98 @@ namespace OSApiInterface.Controllers
         [HttpPut]
         public async Task<IActionResult> PutFileBody(IFormFile file, string objectId)
         {
-            if (await _fileMetaService.ExistsDataWithId(objectId))
+            using (var txn = await _context.Database.BeginTransactionAsync())
             {
-                // TODO: considering to create a new version here.
-                return BadRequest(new
-                {
-                    error = "exists object id,"
-                });
-            }
-            
-            var infileStream = file.OpenReadStream();
-            if (objectId == null)
-            {
-                objectId = file.FileName;
-            }
 
-            // Get Digest in Header
-            string digest;
-            StringValues stringValue;
-            if (HttpContext.Request.Headers.TryGetValue("Digest", out stringValue))
-            {
-                digest = stringValue.ToString();
-            }
-            else
-            {
-                using (SHA256 SHA256 = SHA256Managed.Create())
+                if (await _fileMetaService.ExistsDataWithId(objectId))
                 {
-
-                    using (Stream fstream = infileStream)
+                    // TODO: considering to create a new version here.
+                    return BadRequest(new
                     {
-                        digest = Convert.ToBase64String(SHA256.ComputeHash(fstream));
+                        error = "exists object id,"
+                    });
+                }
+                
+                var infileStream = file.OpenReadStream();
+                if (objectId == null)
+                {
+                    objectId = file.FileName;
+                }
+    
+                // Get Digest in Header
+                string digest;
+                StringValues stringValue;
+                if (HttpContext.Request.Headers.TryGetValue("Digest", out stringValue))
+                {
+                    digest = stringValue.ToString();
+                }
+                else
+                {
+                    using (SHA256 SHA256 = SHA256Managed.Create())
+                    {
+    
+                        using (Stream fstream = infileStream)
+                        {
+                            digest = Convert.ToBase64String(SHA256.ComputeHash(fstream));
+                        }
+                            
                     }
-                        
+                    infileStream = file.OpenReadStream();
                 }
-                infileStream = file.OpenReadStream();
+    
+                bool ifUpload = await _fileMetaService.ExistsDataWithHash(digest);
+                
+                Int64 length = (Int64) file.Length;
+                string fileContentType = file.ContentType;
+                await _fileMetaService.CreateFileMeta(objectId, length, digest, fileContentType);
+                Server server = await _zkService.RandomChooseChildrenAsync();
+    
+                // The hash code not exists and need to be upload
+                if (ifUpload)
+                {
+                    var url = new System.UriBuilder("http", server.Host, System.Convert.ToUInt16(server.HttpPort), "/temp/" + digest);
+    
+                    var httpClient = _httpClientFactory.CreateClient();
+                    var stringPayload = await Task.Run(() => JsonConvert.SerializeObject(
+                    new {
+                        size = length,
+                    }));
+                    var httpContent = new StringContent(stringPayload, Encoding.UTF8, "application/json");
+                    // Post first
+                    var resp = await httpClient.PostAsync(url.ToString(), httpContent);
+                    if (!resp.IsSuccessStatusCode)
+                    {
+                        txn.Rollback();
+                        return BadRequest(resp.StatusCode.ToString());
+    
+                    }
+                    string uid = await resp.Content.ReadAsStringAsync();
+                    _logger.LogInformation("Receive uuid {}", uid);
+                    
+                    var uid_url = new System.UriBuilder("http", server.Host, System.Convert.ToUInt16(server.HttpPort), "/temp/" + uid);
+                    // Patch after post with uuid
+                    resp = await httpClient.PatchAsync(uid_url.ToString(), new StreamContent(infileStream));
+                    if (!resp.IsSuccessStatusCode)
+                    {
+                        txn.Rollback();
+                        return BadRequest(await resp.Content.ReadAsStringAsync());
+    //                    throw new HttpRequestException(await resp.Content.ReadAsStringAsync());
+                    }
+                    // Finally Put
+                    await httpClient.PutAsync(uid_url.ToString(), new StringContent(""));
+                    
+                    _logger.LogInformation("Upload to storage layer done.");
+                    
+                }
+                else
+                {
+                    _logger.LogInformation("Didn't upload to storage layer.");
+                }
+                txn.Commit();
+    
+                return Ok();
             }
-
-            bool ifUpload = await _fileMetaService.ExistsDataWithHash(digest);
             
-            Int64 length = (Int64) file.Length;
-            string fileContentType = file.ContentType;
-            await _fileMetaService.CreateFileMeta(objectId, length, digest, fileContentType);
-            Server server = await _zkService.RandomChooseChildrenAsync();
-
-            // The hash code not exists and need to be upload
-            if (ifUpload)
-            {
-                var url = new System.UriBuilder("http", server.Host, System.Convert.ToUInt16(server.HttpPort), "/temp/" + digest);
-
-                var httpClient = _httpClientFactory.CreateClient();
-                var stringPayload = await Task.Run(() => JsonConvert.SerializeObject(
-                new {
-                    size = length,
-                }));
-                var httpContent = new StringContent(stringPayload, Encoding.UTF8, "application/json");
-                // Post first
-                var resp = await httpClient.PostAsync(url.ToString(), httpContent);
-                if (!resp.IsSuccessStatusCode)
-                {
-                    return BadRequest(resp.StatusCode.ToString());
-
-                }
-                string uid = await resp.Content.ReadAsStringAsync();
-                _logger.LogInformation("Receive uuid {}", uid);
-                
-                var uid_url = new System.UriBuilder("http", server.Host, System.Convert.ToUInt16(server.HttpPort), "/temp/" + uid);
-                // Patch after post with uuid
-                resp = await httpClient.PatchAsync(uid_url.ToString(), new StreamContent(infileStream));
-                if (!resp.IsSuccessStatusCode)
-                {
-                    return BadRequest(await resp.Content.ReadAsStringAsync());
-//                    throw new HttpRequestException(await resp.Content.ReadAsStringAsync());
-                }
-                // Finally Put
-                await httpClient.PutAsync(uid_url.ToString(), new StringContent(""));
-                
-                _logger.LogInformation("Upload to storage layer done.");
-            }
-            else
-            {
-                _logger.LogInformation("Didn't upload to storage layer.");
-            }
-
-            return Ok();
 
         }
         

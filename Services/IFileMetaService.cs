@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using OSApiInterface.Models;
 
@@ -33,5 +35,7 @@ namespace OSApiInterface.Services
         /// <param name="shaHash"></param>
         /// <returns></returns>
         Task<bool> ExistsDataWithHash(string shaHash);
+
+        Task<IEnumerable<FileMeta>> LoadFileMetaAsync(int page, int pageSize = 10);
     }
 }

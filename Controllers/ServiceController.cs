@@ -1,22 +1,56 @@
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using OSApiInterface.Models;
+using OSApiInterface.Services;
 
 namespace OSApiInterface.Controllers
 {
+    [Route("api/[controller]")]
+    [ApiController]
     public class ServiceController : ControllerBase
     {
-        // GET
-        public ActionResult<string> UploadFile()
+        /// <summary>
+        /// Get status of the file
+        /// </summary>
+        /// <returns></returns>
+        [Route("status")]
+        [HttpGet]
+        private async Task<IEnumerable<Server>> GetFileStatus()
         {
-            throw new NotImplementedException();
+            var childrenResult = await _zkService.GetChildrenAsync();
+            var resultList = new List<Server>();
+            foreach (var childrenName in childrenResult.Children)
+            {
+                resultList.Add(await _zkService.LoadServerByNameAsync(childrenName));
+            }
+
+            return resultList;
         }
 
-        public ActionResult<string> GetFileLink()
+        private IZookeeperService _zkService;
+        public ServiceController(IZookeeperService zkService)
         {
-            throw new NotImplementedException();
+            _zkService = zkService;
         }
         
-        
-        
+        /// <summary>
+        /// Get status of the file
+        /// </summary>
+        /// <returns></returns>
+        [Route("status/")]
+        [HttpGet]
+        public async Task<IEnumerable<Server>> GetAllStatus()
+        {
+            var childrenResult = await _zkService.GetChildrenAsync();
+            var resultList = new List<Server>();
+            foreach (var childrenName in childrenResult.Children)
+            {
+                resultList.Add(await _zkService.LoadServerByNameAsync(childrenName));
+            }
+
+            return resultList;
+        }
     }
 }

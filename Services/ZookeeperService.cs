@@ -27,7 +27,7 @@ namespace OSApiInterface.Services
             var childrenResult = await GetChildrenAsync();
             if (childrenResult.Children.Count == 0)
             {
-                throw new HttpRequestException("No result!");
+                return null;
             }
             int randPos = rnd.Next(0, childrenResult.Children.Count);
             string chooseChild = childrenResult.Children[randPos];

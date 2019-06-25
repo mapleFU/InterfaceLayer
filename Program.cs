@@ -26,7 +26,9 @@ namespace OSApiInterface
         }
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
+            // Set MaxRequestBodySize to null
             WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>();
+                .UseStartup<Startup>()
+                .UseKestrel(options => { options.Limits.MaxRequestBodySize = null; });
     }
 }
